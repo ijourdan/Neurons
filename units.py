@@ -53,8 +53,8 @@ class InputUnits(Unit):
 
 
 class LIFUnits(Unit):
-    def __int__(self, n, traces=False, trace_tc=5e-2, rest=-65.0, reset=-65.0, threshold=-52.0, refractory=5,
-                voltage_decay=1e-2):
+    def __int__(self, n, traces=False, trace_tc=5e-2, rest=-90.0, reset=-65.0, threshold=-60.0, refractory=5,
+                voltage_decay=2.9e-2):
         """
         Leaky integrate and fire units. This units are used to translate binary inputs to spikes.
         The default configuration is for a striatal spiny neuron.
