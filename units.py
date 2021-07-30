@@ -95,17 +95,17 @@ class LIFUnits(Unit):
         :return: nothing
         """
 
-        self.v -= dt * self.voltage_decay * (self.v - self.rest)  # update v
+        self.v -= dt * self.voltage_decay * (self.v - self.rest)  # update membrane potential v
         self.refrac_count[self.refrac_count != 0] -= dt   # update refractory state
 
         # Check for spikes
-        self.s = (self.v >= self.threshold) * (self.refrac_count < dt)
-        self.refrac_count[self.s] = dt * self.refractory
-        self.v[self.s] = self.rest
+        self.s = (self.v >= self.threshold) * (self.refrac_count < dt)  # check spikes
+        self.refrac_count[self.s] = dt * self.refractory  # if spike set refractory
+        self.v[self.s] = self.rest  # if spike set rest potential
 
         if mode == 'train':
             self.x -= dt * self.trace_tc * self.x  # update spike trace
-            self.x[self.s.byte()] = 1.0
+            self.x[self.s.byte()] = 1.0  # if a spike is received, the dendrite spike trace is ste to 1
 
         # membrane potential update. This update implies that does not affect a spike occurrence, but possible in the
         # next time step, if the voltage contribution implies a level greater than rest + leak
