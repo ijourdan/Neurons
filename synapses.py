@@ -103,8 +103,8 @@ class SPNSTDP:
         :param target: post-synaptic population
         :param w: synaptic weights
         :param pre_post_c: (mu_post,sigma2_post,mu_pre,sigma2_pre)
-        :param nu_pre:
-        :param nu_post:
+        :param nu_pre: pre_post_c[2]
+        :param nu_post: pre_post_c[0]
         :param wmax:
         :param norm:
         :return: Nothing
