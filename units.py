@@ -1,131 +1,79 @@
+#%%
 import torch
-
+import numpy
 from abc import ABC, abstractmethod
 
+#%%
 
-class Unit(ABC):
-    """
-    Abstract base class for groups of neurons
-    """
-
-    def __int__(self, n, traces, trace_tc):
+class Group(ABC):
+    '''
+    Abstract base class for groups of neurons.
+    '''
+    def __init__(self):
         super().__init__()
 
     @abstractmethod
     def step(self, inpts, mode, dt):
         pass
 
-
-class InputUnits(Unit):
-    def __int__(self, n, traces=False, trace_tc=5e-2):
-        """
-        Interface units for network input. This units are used to translate binary inputs to spikes.
-        :param n: number of neurons
-        :param traces: (True / False) if "True" initialize the unit traces for STDP learning
-        :param trace_tc: Rate of decay of spike trace time constant
-        :return: Nothing
-        """
+class SONGroup(Group):
+    '''
+    Group of Striatal Neuron leaky integrate-and-fire neurons.
+    '''
+    def __init__(self, n, traces=False, rest=-65.0, reset=-65.0, threshold=-52.0,
+                 refractory=5, voltage_decay=1e-2, trace_tc=5e-2):
         super().__init__()
-        self.n = n
-        self.s = torch.zeros(n)  # spike vector.
-        if traces:
-            self.x = torch.zeros(n)
-            self.trace_tc = trace_tc
 
-    def step(self, inputs, mode, dt):
-        """
-        On each simulation step, sets the spikes of the population equal to the input.
-        :param inputs: boolean or byte vector with the information
-        :param mode: 'train' : if is 'train', updates the training traces.
-        :param dt: time step
-        :return: nothing
-        """
-        self.s = inputs
-        if mode == 'train':
-            self.x -= dt * self.trace_tc * self.x  # update spike traces
-            self.x[self.s.byte()] = 1  # setting synaptic traces for a spike occurrence.
+        self.n = n  # No. of neurons.
+        self.rest = rest  # Rest voltage.
+        self.reset = reset  # Post-spike reset voltage.
+        self.threshold = threshold  # Spike threshold voltage.
+        self.refractory = refractory  # Post-spike refractory period (refractory times dt).
+        self.voltage_decay = voltage_decay  # Rate of decay of neuron voltage.
 
-    def get_spikes(self):
-        return self.s
-
-    def get_traces(self):
-        return self.x
-
-
-class LIFUnits(Unit):
-    def __int__(self, n, traces=False, trace_tc=5e-2, rest=-90.0, reset=-65.0, threshold=-60.0, refractory=5,
-                voltage_decay=2.9e-2):
-        """
-        Leaky integrate and fire units. This units are used to translate binary inputs to spikes.
-        The default configuration is for a striatal spiny neuron.
-        :param n: number of neurons
-        :param traces: (True / False) if "True" initialize the unit traces for STDP learning
-        :param trace_tc:  Rate of decay of spike trace time constant
-        :param rest: rest voltage
-        :param reset: post-spike reset voltage
-        :param threshold: spike threshold voltage
-        :param refractory: post-spike refractory period
-        :param voltage_decay: rate of decay of membrane voltage (leakage)
-        :return:
-        """
-
-        super().__init__()
-        self.n = n
-        self.rest = rest
-        self.threshold = threshold
-        self.refractory = refractory
-        self.voltage_decay = voltage_decay
-
-        self.v = self.rest * torch.ones(n)  # membrane voltage
-        self.s = torch.zeros(n)  # spikes.
+        self.v = self.rest * torch.ones(n)  # Neuron voltages.
+        self.s = torch.zeros(n)  # Spike occurences.
 
         if traces:
-            self.x = torch.zeros(n)  # initialize spike traces
-            self.trace_tc = trace_tc
+            self.x = torch.zeros(n)  # Firing traces.
+            self.trace_tc = trace_tc  # Rate of decay of spike trace time constant.
 
-        self.refrac_count = torch.zeros(n)  # time counter for refractory time.
+        self.refrac_count = torch.zeros(n)  # Refractory period counters.
 
-    def step(self, inputs, mode, dt):
-        """
-        On each simulation step, process the input and update traces (x), membrane voltage (v) and spikes (s).
-        Also updates internal states, like the unit refractory state.
-        :param inputs: vector with the information (i.e. pre_outpur * weight)
-        :param mode: 'train' : if is 'train', updates the training traces.
-        :param dt: time step
-        :return: nothing
-        """
-
-        self.v -= dt * self.voltage_decay * (self.v - self.rest)  # update membrane potential v
-        self.refrac_count[self.refrac_count != 0] -= dt   # update refractory state
-
-        # Check for spikes
-        self.s = (self.v >= self.threshold) * (self.refrac_count < dt)  # check spikes
-        self.refrac_count[self.s] = dt * self.refractory  # if spike set refractory
-        self.v[self.s] = self.rest  # if spike set rest potential
+    def step(self, inpts, mode, dt):
+        # Decay voltages.
+        self.v -= dt * self.voltage_decay * (self.v - self.rest)
 
         if mode == 'train':
-            self.x -= dt * self.trace_tc * self.x  # update spike trace
-            self.x[self.s.byte()] = 1.0  # if a spike is received, the dendrite spike trace is ste to 1
+            # Decay spike traces and adaptive thresholds.
+            self.x -= dt * self.trace_tc * self.x
 
-        # membrane potential update. This update implies that does not affect a spike occurrence, but possible in the
-        # next time step, if the voltage contribution implies a level greater than rest + leak
-        # == A good question is what if we put it as a first line in this method ===
-        # Here, inputs are not a spike train, it's the synaptic output.
-        self.v += sum([inputs[key] for key in inputs])
+        # Decrement refractory counters.
+        self.refrac_count[self.refrac_count != 0] -= dt
+
+        # Check for spiking neurons.
+        self.s = (self.v >= self.threshold) * (self.refrac_count == 0)
+        self.refrac_count[self.s] = dt * self.refractory
+        self.v[self.s] = self.reset
+
+        # Integrate input and decay voltages.
+        self.v += sum([inpts[key] for key in inpts])
+
+        if mode == 'train':
+            # Setting synaptic traces.
+            self.x[self.s.byte()] = 1.0
 
     def get_spikes(self):
         return self.s
 
     def get_voltages(self):
-        return self.s
+        return self.v
 
     def get_traces(self):
-        return self.x
+        return self.traces
 
 
+         
+ 
 
-
-
-
-
-
+#%%
