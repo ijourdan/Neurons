@@ -16,6 +16,41 @@ class Group(ABC):
     def step(self, inpts, mode, dt):
         pass
 
+class InputUnits(Group):
+    def __int__(self, n, traces=False, trace_tc=5e-2):
+        """
+        Interface units for network input. This units are used to translate binary inputs to spikes.
+        :param n: number of neurons
+        :param traces: (True / False) if "True" initialize the unit traces for STDP learning
+        :param trace_tc: Rate of decay of spike trace time constant
+        :return: Nothing
+        """
+        super().__init__()
+        self.n = n
+        self.s = torch.zeros(n)  # spike vector.
+        if traces:
+            self.x = torch.zeros(n)
+            self.trace_tc = trace_tc
+
+    def step(self, inputs, mode, dt):
+        """
+        On each simulation step, sets the spikes of the population equal to the input.
+        :param inputs: boolean or byte vector with the information
+        :param mode: 'train' : if is 'train', updates the training traces.
+        :param dt: time step
+        :return: nothing
+        """
+        self.s = inputs
+        if mode == 'train':
+            self.x -= dt * self.trace_tc * self.x  # update spike traces
+            self.x[self.s.byte()] = 1  # setting synaptic traces for a spike occurrence.
+
+    def get_spikes(self):
+        return self.s
+
+    def get_traces(self):
+        return self.x
+
 class SONGroup(Group):
     '''
     Group of Striatal Neuron leaky integrate-and-fire neurons.
@@ -70,7 +105,9 @@ class SONGroup(Group):
         return self.v
 
     def get_traces(self):
-        return self.traces
+        return self.x
+
+
 
 
          
