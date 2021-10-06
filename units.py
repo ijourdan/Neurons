@@ -13,7 +13,7 @@ class Group(ABC):
         super().__init__()
 
     @abstractmethod
-    def step(self, inpts, mode, dt):
+    def step(self, inputs, mode, dt):
         pass
 
 class InputUnits(Group):

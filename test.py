@@ -5,6 +5,8 @@ from matplotlib import pyplot as plt
 from torch.distributions.normal import Normal
 from utils import generador
 
+from units import InputUnits
+
 
 
 #%%
@@ -29,4 +31,9 @@ channels_in[7,:] = out[2,:]
 del(mtx, out)
 
 #%%
+# Se van a declarar dos unidades de entradas de datos.
 
+input_units = InputUnits(n=2, traces=True)
+
+#%%
+InputUnits()
