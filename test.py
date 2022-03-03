@@ -3,11 +3,13 @@ import torch
 import numpy as np
 from matplotlib import pyplot as plt
 from torch.distributions.normal import Normal
-from utils import generador
+from utils import generador, plot_ruster
 
 from units import InputUnits
 
+from torch.nn.utils.rnn import pad_sequence
 
+import matplotlib.pyplot as plt
 
 #%%
 
@@ -33,7 +35,21 @@ del(mtx, out)
 #%%
 # Se van a declarar dos unidades de entradas de datos.
 
-input_units = InputUnits(n=2, traces=True)
+input_units = InputUnits(n=10, traces=True)
 
 #%%
-InputUnits()
+longitud = channels_in.size()[1]
+traces_out = torch.zeros((channel_in,longitud))
+spikes_out =torch.zeros((channel_in,longitud))
+for i in  torch.arange(0,longitud):
+    input_units.step(inputs=channels_in[:,i], mode='train',dt=1)
+    traces_out[:,i] = input_units.get_traces()
+
+
+
+#%%
+#spk = pad_sequence(spikes_out)
+#trc = pad_sequence(traces_out)
+
+#%%
+

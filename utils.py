@@ -40,3 +40,6 @@ def plot_ruster(matx, minx=None, maxx=None):
     linelengths2 = .1
     plt.eventplot(eventos, colors=colors2, lineoffsets=lineoffsets2, linelengths=linelengths2)
 
+
+#%%
+

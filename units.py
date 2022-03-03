@@ -17,7 +17,7 @@ class Group(ABC):
         pass
 
 class InputUnits(Group):
-    def __int__(self, n, traces=False, trace_tc=5e-2):
+    def __init__(self, n, traces=False, trace_tc=5e-2):
         """
         Interface units for network input. This units are used to translate binary inputs to spikes.
         :param n: number of neurons
@@ -32,24 +32,25 @@ class InputUnits(Group):
             self.x = torch.zeros(n)
             self.trace_tc = trace_tc
 
-    def step(self, inputs, mode, dt):
+    def step(self, inputs, mode, dt=1):
         """
         On each simulation step, sets the spikes of the population equal to the input.
         :param inputs: boolean or byte vector with the information
         :param mode: 'train' : if is 'train', updates the training traces.
-        :param dt: time step
+        :param dt: time step [ms]
         :return: nothing
         """
         self.s = inputs
         if mode == 'train':
             self.x -= dt * self.trace_tc * self.x  # update spike traces
-            self.x[self.s.byte()] = 1  # setting synaptic traces for a spike occurrence.
+            self.x[self.s.bool()] = 1  # setting synaptic traces for a spike occurrence.
 
     def get_spikes(self):
         return self.s
 
     def get_traces(self):
         return self.x
+
 
 class SONGroup(Group):
     '''
@@ -75,7 +76,7 @@ class SONGroup(Group):
 
         self.refrac_count = torch.zeros(n)  # Refractory period counters.
 
-    def step(self, inpts, mode, dt):
+    def step(self, inpts, mode, dt=1):
         # Decay voltages.
         self.v -= dt * self.voltage_decay * (self.v - self.rest)
 
@@ -88,15 +89,15 @@ class SONGroup(Group):
 
         # Check for spiking neurons.
         self.s = (self.v >= self.threshold) * (self.refrac_count == 0)
-        self.refrac_count[self.s] = dt * self.refractory
-        self.v[self.s] = self.reset
+        self.refrac_count[self.s.bool()] = dt * self.refractory
+        self.v[self.s.bool()] = self.reset
 
         # Integrate input and decay voltages.
         self.v += sum([inpts[key] for key in inpts])
 
         if mode == 'train':
             # Setting synaptic traces.
-            self.x[self.s.byte()] = 1.0
+            self.x[self.s.bool()] = 1.0
 
     def get_spikes(self):
         return self.s
