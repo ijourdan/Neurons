@@ -26,9 +26,9 @@ channels_in[mtx > 0.99] = 1
 
 out = generador(tiempo=time_window, canales=3, fs=fs)
 
-channels_in[3,:] = out[0,:]
-channels_in[5,:] = out[1,:]
-channels_in[7,:] = out[2,:]
+#channels_in[3,:] = out[0,:]
+#channels_in[5,:] = out[1,:]
+#channels_in[7,:] = out[2,:]
 
 del(mtx, out)
 
@@ -39,11 +39,11 @@ input_units = InputUnits(n=10, traces=True)
 
 #%%
 longitud = channels_in.size()[1]
-traces_out = torch.zeros((channel_in,longitud))
-spikes_out =torch.zeros((channel_in,longitud))
-for i in  torch.arange(0,longitud):
-    input_units.step(inputs=channels_in[:,i], mode='train',dt=1)
-    traces_out[:,i] = input_units.get_traces()
+traces_out = torch.zeros((channel_in, longitud))
+spikes_out =torch.zeros((channel_in, longitud))
+for i in torch.arange(0,longitud):
+    input_units.step(inputs=channels_in[:, i], mode='train', dt=1)
+    traces_out[:, i] = input_units.get_traces()
 
 
 
