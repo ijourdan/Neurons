@@ -1,6 +1,7 @@
 import torch
 from torch.distributions.normal import Normal
 
+
 class Constant:
     def __init__(self, source, target, w=None):
         """
