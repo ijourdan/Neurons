@@ -95,14 +95,14 @@ class HEBBSTDP:
         self.target = target
 
 class SPNSTDP:
-    def __int__(self, source, target, w=None,  pre_post_c=(-18.71, 11.73, 21.04, 8.43), nu_pre=1e-4, nu_post=1e-2, wmax=1.0, norm=78.0):
+    def __int__(self, source, target, w=None,  pre_post_c=(-18.71, 9.69, 21.04, 8.21), nu_pre=11.58, nu_post=-11.4, wmax=2.0, norm=78.0):
         """
         Specify STDP-adapted synapses between two population of neurons, when the post-synaptic neuron
         is a striatal spiny neuron
         :param source: pre-synaptic population
         :param target: post-synaptic population
         :param w: synaptic weights
-        :param pre_post_c: (mu_post,sigma2_post,mu_pre,sigma2_pre)
+        :param pre_post_c: (mu_post,scale_post,mu_pre,scale_pre)
         :param nu_pre: pre_post_c[2]
         :param nu_post: pre_post_c[0]
         :param wmax:
@@ -118,9 +118,10 @@ class SPNSTDP:
         else:
             raise NameError('BadDimensions')
 
+        self.pre_post_c = pre_post_c
         self.nu_pre = nu_pre
         self.nu_post = nu_post
-        self.wmax = w.max
+        self.wmax = wmax
         self.norm = norm
 
     def phi(self, loc, scale, value):
@@ -133,3 +134,25 @@ class SPNSTDP:
         """
         m = Normal(torch.tensor([loc]).float(), torch.tensor([scale]).float())
         return m.log_prob(value).exp()
+
+    def get_weights(self):
+        return self.w
+
+    def set_weights(self, w):
+        if (self.source.n == w.shape[0]) & (self.target.n == w.shape[1]):
+            self.w = w
+        else:
+            raise NameError('BadDimensions')
+
+    def get_source(self):
+        return self.source
+
+    def get_target(self):
+        return self.target
+
+    def update(self):
+        pass
+
+
+
+

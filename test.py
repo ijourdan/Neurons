@@ -53,3 +53,6 @@ for i in torch.arange(0,longitud):
 
 #%%
 
+
+
+
