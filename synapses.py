@@ -127,6 +127,8 @@ class SPNSTDP:
 
     def phi(self, loc, scale, value):
         """
+        función densidad de probabilidad gaussiana
+        es la base sobre las que se modelan las variaciones de pesos W.
         Normal(loc,scale) pdf
         :param loc: mean (number)
         :param scale: standar deviation (number)

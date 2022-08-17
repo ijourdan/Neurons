@@ -49,7 +49,7 @@ for i in torch.arange(0,longitud):
 
 #%%
 spk = pad_sequence(spikes_out)
-#trc = pad_sequence(traces_out)
+trc = pad_sequence(traces_out)
 
 #%%
 
