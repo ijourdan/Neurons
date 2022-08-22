@@ -17,12 +17,13 @@ class Group(ABC):
         pass
 
 class InputUnits(Group):
-    def __init__(self, n, traces=False, trace_tc=5e-2):
+    def __init__(self, n, traces=False, trace_tc=5e-2, trace_time_post_max=50):
         """
         Interface units for network input. This units are used to translate binary inputs to spikes.
         :param n: number of neurons
         :param traces: (True / False) if "True" initialize the unit traces for STDP learning
         :param trace_tc: Rate of decay of spike trace time constant
+        :param  trace_time_post_max: máximo tiempo post útil al modelo anti-hebbiano de estriado.
         :return: Nothing
         """
         super().__init__()
@@ -31,6 +32,8 @@ class InputUnits(Group):
         if traces:
             self.x = torch.zeros(n)
             self.trace_tc = trace_tc
+            self.trace_time_post_max = trace_time_post_max
+            self.trace_time_post = self.trace_time_post_max * torch.ones(n)  # 50ms is the maximum relevant value
 
     def step(self, inputs, mode, dt=1):
         """
@@ -44,12 +47,14 @@ class InputUnits(Group):
         if mode == 'train':
             self.x -= dt * self.trace_tc * self.x  # update spike traces
             self.x[self.s.bool()] = 1  # setting synaptic traces for a spike occurrence.
+            self.trace_time_post[self.trace_time_post < self.trace_time_post_max] += dt  # update time traces
+            self.trace_time_post[self.s.bool()] = 0 # setting time trace for a spike occurrence.
 
     def get_spikes(self):
         return self.s
 
     def get_traces(self):
-        return self.x
+        return self.x, self.trace_time_post
 
 
 class SONGroup(Group):
@@ -57,7 +62,7 @@ class SONGroup(Group):
     Group of Striatal Neuron leaky integrate-and-fire neurons.
     '''
     def __init__(self, n, traces=False, rest=-65.0, reset=-65.0, threshold=-52.0,
-                 refractory=5, voltage_decay=1e-2, trace_tc=5e-2):
+                 refractory=5, voltage_decay=1e-2, trace_tc=5e-2, trace_time_post_max=50):
         super().__init__()
 
         self.n = n  # No. of neurons.
@@ -73,6 +78,8 @@ class SONGroup(Group):
         if traces:
             self.x = torch.zeros(n)  # Firing traces.
             self.trace_tc = trace_tc  # Rate of decay of spike trace time constant.
+            self.trace_time_post_max = trace_time_post_max
+            self.trace_time_post = self.trace_time_post_max * torch.ones(n)  # 50ms is the maximum relevant value
 
         self.refrac_count = torch.zeros(n)  # Refractory period counters.
 
@@ -83,6 +90,8 @@ class SONGroup(Group):
         if mode == 'train':
             # Decay spike traces and adaptive thresholds.
             self.x -= dt * self.trace_tc * self.x
+            # Increase time from post spike event
+            self.trace_time_post[self.trace_time_post > self.trace_time_post_max] += dt  # update time traces
 
         # Decrement refractory counters.
         self.refrac_count[self.refrac_count != 0] -= dt
@@ -98,6 +107,8 @@ class SONGroup(Group):
         if mode == 'train':
             # Setting synaptic traces.
             self.x[self.s.bool()] = 1.0
+            # Setting time trace for post synaptic spike occurrence.
+            self.trace_time_post[self.s.bool()] = 0  # setting time trace for a spike occurrence.
 
     def get_spikes(self):
         return self.s
@@ -106,7 +117,7 @@ class SONGroup(Group):
         return self.v
 
     def get_traces(self):
-        return self.x
+        return self.x, self.trace_time_post
 
 
 
