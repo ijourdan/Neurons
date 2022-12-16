@@ -1,7 +1,7 @@
 import torch
 
-import spiketorch.groups as groups
-import spiketorch.synapses as synapses
+import basalganglia.groups as groups
+import basalganglia.synapses as synapses
 
 
 class Network:

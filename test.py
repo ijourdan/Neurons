@@ -3,9 +3,9 @@ import torch
 import numpy as np
 from matplotlib import pyplot as plt
 from torch.distributions.normal import Normal
-from utils import generador, plot_ruster
+from basalganglia.utils import generador, plot_ruster
 
-from units import InputUnits
+from basalganglia.groups import InputUnits
 
 from torch.nn.utils.rnn import pad_sequence
 
